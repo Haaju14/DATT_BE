@@ -1,9 +1,16 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import { createServer } from "http";
+import { Server } from "socket.io";
+
+import sequelize from "./config/db.js";
+import initModels from "./models/init-models.js";
+import errorHandler from "./middleware/errorHandler.js";
+
+// Routes
 import productRoute from "./routes/ProductRoute.js";
 import cartRoute from "./routes/CartRoute.js";
-import errorHandler from "./middleware/errorHandler.js";
 import AuthRoute from "./routes/AuthRoute.js";
 import UserRoute from "./routes/UserRoute.js";
 import CategoryRoute from "./routes/CategoryRoute.js";
@@ -14,32 +21,15 @@ import WishlistRoute from "./routes/WishlistRoute.js";
 import PromotionRoute from "./routes/PromotionRoute.js";
 import LoyaltyRoute from "./routes/LoyaltyRoute.js";
 import StatisticsRoute from "./routes/StatisticsRoute.js";
-import sequelize from "../src/config/db.js";
-import initModels from "../src/models/init-models.js";
 import HookRoute from "./routes/HookRoute.js";
 import VoucherRoute from "./routes/VoucherRoute.js";
-import { createServer } from "http";
-import { Server } from "socket.io";
-import { exec } from "child_process";
 
+dotenv.config();
 const app = express();
-app.use(express.json());
-
-// Khởi tạo models
-const models = initModels(sequelize);
-const { Products } = models;
 const httpServer = createServer(app);
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: [
-      "http://192.168.100.134:5173",
-      "http://tmdt2.cholimexfood.com.vn",
-      "https://tmdt2.cholimexfood.com.vn",
-    ],
-    credentials: true,
-  },
-});
+app.use(express.json());
+
 const allowedOrigins = [
   "http://192.168.100.134:5173",
   "http://tmdt2.cholimexfood.com.vn",
@@ -50,7 +40,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -60,6 +50,14 @@ app.use(
   })
 );
 
+// WebSocket
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  },
+});
+
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
   socket.on("disconnect", () => {
@@ -67,14 +65,10 @@ io.on("connection", (socket) => {
   });
 });
 
-httpServer.listen(8080, () => {
-  console.log("Server running on port 8080 with WebSocket");
-});
+// Khởi tạo models
+const models = initModels(sequelize);
 
-app.use(express.json());
-app.use(errorHandler);
-
-//routes
+// Routes
 app.use("/api/auth", AuthRoute);
 app.use("/api/cart", cartRoute);
 app.use("/api/categories", CategoryRoute);
@@ -89,3 +83,9 @@ app.use("/api/loyalty", LoyaltyRoute);
 app.use("/api/statistics", StatisticsRoute);
 app.use("/api/hooks", HookRoute);
 app.use("/api/vouchers", VoucherRoute);
+
+app.use(errorHandler);
+
+httpServer.listen(8080, () => {
+  console.log("Server running on port 8080 with WebSocket");
+});
