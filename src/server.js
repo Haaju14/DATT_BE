@@ -89,3 +89,7 @@ app.use(errorHandler);
 httpServer.listen(8080, () => {
   console.log("Server running on port 8080 with WebSocket");
 });
+console.log("Starting server...");
+sequelize.authenticate()
+  .then(() => console.log("Database connected"))
+  .catch((err) => console.error("Database connection error:", err));

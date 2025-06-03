@@ -1,7 +1,9 @@
 import { Sequelize } from 'sequelize';
-    import dotenv from 'dotenv';
+import dotenv from 'dotenv';
+import path from 'path';
 
 dotenv.config({ path: '/home/master/cholimex/DATT_BE/.env' });
+
     const sequelize = new Sequelize(
       process.env.DB_DATABASE,
       process.env.DB_USER,
